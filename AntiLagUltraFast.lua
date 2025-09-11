@@ -1,23 +1,16 @@
---[[
-    ZenScripter's AntiLagFixed.lua
-    - LocalScript compatible (StarterPlayerScripts/PlayerGui)
-    - Fast GUI toggle
-    - RenderStepped loop for instant lag cleanup
-    - Hardcore anti-lag defense
---]]
+-- ZenScripter's UltraFast AntiLag.lua
+-- LocalScript compatible. Place in StarterPlayerScripts, PlayerGui, or use in executor.
 
 local plr = game:GetService("Players").LocalPlayer
 local pgui = plr:WaitForChild("PlayerGui")
 
--- GUI
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "AntiLagUltraGui"
-screenGui.ResetOnSpawn = false
 screenGui.Parent = pgui
 
 local dragFrame = Instance.new("Frame")
-dragFrame.Size = UDim2.new(0, 90, 0, 36)
-dragFrame.Position = UDim2.new(0, 30, 0, 30)
+dragFrame.Size = UDim2.new(0,90,0,36)
+dragFrame.Position = UDim2.new(0,30,0,30)
 dragFrame.BackgroundColor3 = Color3.fromRGB(30,30,30)
 dragFrame.BorderSizePixel = 0
 dragFrame.Active = true
@@ -25,7 +18,7 @@ dragFrame.Selectable = true
 dragFrame.Parent = screenGui
 
 local btn = Instance.new("TextButton")
-btn.Size = UDim2.new(1, 0, 1, 0)
+btn.Size = UDim2.new(1,0,1,0)
 btn.BackgroundColor3 = Color3.fromRGB(60,200,90)
 btn.Text = "Potato: OFF"
 btn.TextColor3 = Color3.new(1,1,1)
@@ -33,7 +26,6 @@ btn.Font = Enum.Font.SourceSansBold
 btn.TextSize = 16
 btn.Parent = dragFrame
 
--- Drag Support (modern)
 local uis = game:GetService("UserInputService")
 local dragging, dragStart, startPos
 dragFrame.InputBegan:Connect(function(input)
@@ -53,7 +45,6 @@ uis.InputChanged:Connect(function(input)
     end
 end)
 
--- Anti-Lag Logic
 local laggyTypes = {
     "ParticleEmitter", "Trail", "Smoke", "Fire", "Sparkles", "Explosion",
     "Decal", "Texture", "MeshPart", "SurfaceAppearance"
@@ -120,7 +111,6 @@ local function antiAntiLag()
     if Terrain then Terrain.Changed:Connect(potatoLighting) end
 end
 
--- Toggle Logic
 local potatoOn = false
 local potatoLoop
 local function setPotato(on)
@@ -138,7 +128,6 @@ local function setPotato(on)
         btn.Text = "Potato: OFF"
         btn.BackgroundColor3 = Color3.fromRGB(60,200,90)
         if potatoLoop then potatoLoop:Disconnect() end
-        -- (Optional) Restore basic lighting
         pcall(function()
             local Lighting = game:GetService("Lighting")
             Lighting.GlobalShadows = true
@@ -157,4 +146,7 @@ btn.MouseButton1Click:Connect(function()
     setPotato(not potatoOn)
 end)
 
-print("AntiLagFixed LocalScript Loaded! Drag GUI and click to toggle Potato Mode.")
+print("AntiLagUltraFast Loaded! Drag GUI and click to toggle Potato Mode.")
+
+-- Uncomment below to start ON by default
+-- setPotato(true)
