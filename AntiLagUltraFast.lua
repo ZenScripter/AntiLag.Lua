@@ -1,5 +1,5 @@
--- ZenScripter's UltraFast AntiLag.lua
--- LocalScript compatible. Place in StarterPlayerScripts, PlayerGui, or use in executor.
+-- ZenScripter's FPS-Safe AntiLag.lua
+-- LocalScript compatible. Place in StarterPlayerScripts or use executor.
 
 local plr = game:GetService("Players").LocalPlayer
 local pgui = plr:WaitForChild("PlayerGui")
@@ -86,13 +86,15 @@ local function removeLaggyObjects()
         if obj:IsA("BasePart") then
             obj.CastShadow = false
             obj.Reflectance = 0
-            obj.Material = Enum.Material.Plastic
+            -- Only set material if it's not already Plastic for less lag
+            if obj.Material ~= Enum.Material.Plastic then
+                obj.Material = Enum.Material.Plastic
+            end
         end
     end
     for _, s in ipairs(workspace:GetDescendants()) do
         if s:IsA("Sound") then
             pcall(function()
-                s:Stop()
                 s.Volume = 0
                 s.Playing = false
             end)
@@ -100,34 +102,35 @@ local function removeLaggyObjects()
     end
 end
 
-local function antiAntiLag()
-    local Lighting = game:GetService("Lighting")
-    Lighting.Changed:Connect(potatoLighting)
-    Lighting.ChildAdded:Connect(potatoLighting)
-    workspace.DescendantAdded:Connect(function(desc)
-        removeLaggyObjects()
-    end)
-    local Terrain = workspace:FindFirstChildOfClass("Terrain")
-    if Terrain then Terrain.Changed:Connect(potatoLighting) end
-end
-
 local potatoOn = false
-local potatoLoop
+local lightingLoop, laggyLoop
 local function setPotato(on)
     potatoOn = on
     if on then
         btn.Text = "Potato: ON"
         btn.BackgroundColor3 = Color3.fromRGB(200,120,40)
-        if potatoLoop then potatoLoop:Disconnect() end
-        potatoLoop = game:GetService("RunService").RenderStepped:Connect(function()
-            potatoLighting()
-            removeLaggyObjects()
+        -- Lighting loop every 1s
+        lightingLoop = coroutine.create(function()
+            while potatoOn do
+                potatoLighting()
+                wait(1)
+            end
         end)
-        antiAntiLag()
+        coroutine.resume(lightingLoop)
+        -- Laggy remover loop every 2s
+        laggyLoop = coroutine.create(function()
+            while potatoOn do
+                removeLaggyObjects()
+                wait(2)
+            end
+        end)
+        coroutine.resume(laggyLoop)
     else
         btn.Text = "Potato: OFF"
         btn.BackgroundColor3 = Color3.fromRGB(60,200,90)
-        if potatoLoop then potatoLoop:Disconnect() end
+        potatoOn = false
+        -- No need to manually kill coroutines, they will exit on next loop since potatoOn is now false
+        -- (Optional) Restore basic lighting
         pcall(function()
             local Lighting = game:GetService("Lighting")
             Lighting.GlobalShadows = true
@@ -146,7 +149,7 @@ btn.MouseButton1Click:Connect(function()
     setPotato(not potatoOn)
 end)
 
-print("AntiLagUltraFast Loaded! Drag GUI and click to toggle Potato Mode.")
+print("AntiLagUltraFastOptimized Loaded! Drag GUI and click to toggle Potato Mode.")
 
 -- Uncomment below to start ON by default
 -- setPotato(true)
