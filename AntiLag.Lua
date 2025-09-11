@@ -1,12 +1,11 @@
 --[[
-    ZenScripter's UltraFast AntiLag.lua
+    ZenScripter's AntiLagFixed.lua
+    - LocalScript compatible (StarterPlayerScripts/PlayerGui)
     - Fast GUI toggle
     - RenderStepped loop for instant lag cleanup
-    - Maximum potato graphics
     - Hardcore anti-lag defense
 --]]
 
-local uis = game:GetService("UserInputService")
 local plr = game:GetService("Players").LocalPlayer
 local pgui = plr:WaitForChild("PlayerGui")
 
@@ -22,7 +21,7 @@ dragFrame.Position = UDim2.new(0, 30, 0, 30)
 dragFrame.BackgroundColor3 = Color3.fromRGB(30,30,30)
 dragFrame.BorderSizePixel = 0
 dragFrame.Active = true
-dragFrame.Draggable = true
+dragFrame.Selectable = true
 dragFrame.Parent = screenGui
 
 local btn = Instance.new("TextButton")
@@ -34,8 +33,9 @@ btn.Font = Enum.Font.SourceSansBold
 btn.TextSize = 16
 btn.Parent = dragFrame
 
--- Drag Support (extra smooth)
-local dragging, dragInput, dragStart, startPos
+-- Drag Support (modern)
+local uis = game:GetService("UserInputService")
+local dragging, dragStart, startPos
 dragFrame.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 then
         dragging = true
@@ -46,14 +46,14 @@ dragFrame.InputBegan:Connect(function(input)
         end)
     end
 end)
-dragFrame.InputChanged:Connect(function(input)
+uis.InputChanged:Connect(function(input)
     if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
         local delta = input.Position - dragStart
         dragFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
     end
 end)
 
--- Hard Anti-Lag
+-- Anti-Lag Logic
 local laggyTypes = {
     "ParticleEmitter", "Trail", "Smoke", "Fire", "Sparkles", "Explosion",
     "Decal", "Texture", "MeshPart", "SurfaceAppearance"
@@ -134,7 +134,6 @@ local function setPotato(on)
             removeLaggyObjects()
         end)
         antiAntiLag()
-        if setfpscap then setfpscap(60) elseif setfps then setfps(60) end
     else
         btn.Text = "Potato: OFF"
         btn.BackgroundColor3 = Color3.fromRGB(60,200,90)
@@ -158,7 +157,4 @@ btn.MouseButton1Click:Connect(function()
     setPotato(not potatoOn)
 end)
 
-print("UltraFast AntiLag Loaded! Drag the GUI and toggle Potato Mode.")
-
--- Uncomment to start ON by default:
--- setPotato(true)
+print("AntiLagFixed LocalScript Loaded! Drag GUI and click to toggle Potato Mode.")
