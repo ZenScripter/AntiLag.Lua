@@ -1,81 +1,108 @@
--- Super-Fast, No-GUI AntiLag Script for Roblox
--- Place in StarterPlayerScripts or run with your executor.
+-- 🛡 Anti-Lag Zen V1 (Auto-Clean Upgrade)
+-- Adds auto-detect & delete for heavy lag sources
 
-local plr = game:GetService("Players").LocalPlayer
+local Players = game:GetService("Players")
+local Lighting = game:GetService("Lighting")
+local UserInputService = game:GetService("UserInputService")
 
--- Whitelist: Never remove/touch these object types/names!
-local whitelist = {"Hitbox", "Ability", "Music", "Emote", "Player", "Humanoid", "GUI"}
-local laggyTypes = {
-    "ParticleEmitter", "Trail", "Smoke", "Fire", "Sparkles", "Explosion",
-    "SurfaceAppearance", "Decal", "Texture"
-}
+local LocalPlayer = Players.LocalPlayer
+local enabled = true
+local mode = "Medium" -- default mode
 
--- Smart Filtering
+-- ✅ Whitelist
+local whitelist = { "PlayerParticles", "SpecialEffect" }
 local function isWhitelisted(obj)
-    for _, w in ipairs(whitelist) do
-        if obj.Name:lower():find(w:lower()) then return true end
-    end
-    if plr.Character and obj:IsDescendantOf(plr.Character) then return true end
-    return false
-end
-
-local function isLaggy(obj)
-    for _, t in ipairs(laggyTypes) do
-        if obj:IsA(t) then return true end
+    for _, name in ipairs(whitelist) do
+        if obj.Name == name then
+            return true
+        end
     end
     return false
 end
 
--- FPS-Safe cleaning loop (every 3 seconds)
-local function cleanLaggyObjects()
-    for _, obj in ipairs(workspace:GetDescendants()) do
-        if isWhitelisted(obj) then continue end
-        if isLaggy(obj) then
-            pcall(function() obj:Destroy() end)
+-- ✅ Smart cleaner: disable OR delete if heavy
+local function cleanObject(obj)
+    if not enabled or isWhitelisted(obj) then return end
+
+    -- Detect particle spam
+    if obj:IsA("ParticleEmitter") then
+        if obj.Rate > 200 then
+            obj:Destroy() -- 💥 delete very laggy emitter
+        else
+            obj.Enabled = false
         end
-        -- Remove extra sounds except music/ability/emote
-        if obj:IsA("Sound") and not isWhitelisted(obj) then
-            pcall(function() obj:Stop() obj.Volume = 0 end)
+
+    elseif obj:IsA("Trail") or obj:IsA("Beam") then
+        obj.Enabled = false
+
+    elseif obj:IsA("Smoke") or obj:IsA("Fire") then
+        if obj.Opacity > 0.5 then
+            obj:Destroy() -- delete strong fire/smoke
+        else
+            obj.Enabled = false
         end
+
+    elseif obj:IsA("Explosion") then
+        obj:Destroy() -- delete instead of hiding
     end
 end
 
--- Lighting Optimization (optional: comment out if you want default lighting)
-local function potatoLighting()
-    local Lighting = game:GetService("Lighting")
-    Lighting.Brightness = 5
-    Lighting.FogEnd = 1e6
-    Lighting.FogStart = 0
-    Lighting.GlobalShadows = false
-    Lighting.OutdoorAmbient = Color3.new(1,1,1)
-    Lighting.EnvironmentDiffuseScale = 0
-    Lighting.EnvironmentSpecularScale = 0
-    Lighting.ClockTime = 14
-    for _, effect in ipairs(Lighting:GetChildren()) do
-        if effect:IsA("BlurEffect") or effect:IsA("ColorCorrectionEffect")
-        or effect:IsA("SunRaysEffect") or effect:IsA("BloomEffect") then
-            effect.Enabled = false
+-- ✅ Batch scan
+task.spawn(function()
+    for i, obj in ipairs(workspace:GetDescendants()) do
+        cleanObject(obj)
+        if i % 100 == 0 then
+            task.wait()
         end
-    end
-    local Terrain = workspace:FindFirstChildOfClass("Terrain")
-    if Terrain then
-        Terrain.WaterReflectance = 0
-        Terrain.WaterTransparency = 1
-        Terrain.WaterWaveSize = 0
-        Terrain.WaterWaveSpeed = 0
-        Terrain.WaterColor = Color3.new(0,0,0)
-    end
-end
-
--- Main loop (FPS-friendly)
-local lastClean = 0
-game:GetService("RunService").RenderStepped:Connect(function()
-    local now = tick()
-    if now - lastClean > 3 then
-        cleanLaggyObjects()
-        potatoLighting()
-        lastClean = now
     end
 end)
 
-print("AntiLagNoGUI loaded! FPS boost active, no GUI, safe cleaning.")
+-- ✅ New laggy stuff
+workspace.DescendantAdded:Connect(cleanObject)
+
+-- ✅ Preset switcher (Light / Medium / Ultra)
+local modes = { "Light", "Medium", "Ultra" }
+local currentIndex = 2 -- start Medium
+
+local function applyMode(newMode)
+    mode = newMode
+    print("Anti-Lag Mode:", mode)
+
+    Lighting.GlobalShadows = false
+    Lighting.FogEnd = 1e9
+    Lighting.Brightness = 1
+
+    if mode == "Light" then
+        -- minimal
+        if Lighting:FindFirstChild("Atmosphere") then
+            Lighting.Atmosphere:Destroy()
+        end
+    elseif mode == "Medium" or mode == "Ultra" then
+        -- rescan with cleaner
+        task.spawn(function()
+            for i, obj in ipairs(workspace:GetDescendants()) do
+                cleanObject(obj)
+                if i % 100 == 0 then
+                    task.wait()
+                end
+            end
+        end)
+    end
+end
+
+-- ✅ Toggle & Cycle hotkeys
+UserInputService.InputBegan:Connect(function(input, gpe)
+    if gpe then return end
+
+    if input.KeyCode == Enum.KeyCode.F3 then
+        enabled = not enabled
+        print("Anti-Lag:", enabled and "ON" or "OFF")
+    elseif input.KeyCode == Enum.KeyCode.F4 and enabled then
+        currentIndex = currentIndex % #modes + 1
+        applyMode(modes[currentIndex])
+    end
+end)
+
+-- ✅ Init
+applyMode(mode)
+print("✅ Anti-Lag V1 Loaded with Auto-Clean")
